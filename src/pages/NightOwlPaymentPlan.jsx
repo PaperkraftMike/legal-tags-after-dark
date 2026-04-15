@@ -44,39 +44,40 @@ export default function NightOwlPaymentPlan() {
     }
   };
 
-  // Calculate time until 7 AM local time (offer window: 7 PM - 7 AM)
+  // Offer window: 6 PM MST to 6 AM MST (MST = UTC-7)
   // ?preview=true bypasses time gate for testing
   const isPreview = new URLSearchParams(window.location.search).get('preview') === 'true';
 
   useEffect(() => {
     const calcExpiry = () => {
       const now = new Date();
-      let target = new Date(now);
-      const currentHour = now.getHours();
+      const mstOffset = -7;
+      const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+      const mstMs = utcMs + mstOffset * 3600000;
+      const mstNow = new Date(mstMs);
+      const mstHour = mstNow.getHours();
 
-      // If between midnight and 7 AM, target is 7 AM today
-      if (currentHour < 7) {
-        target.setHours(7, 0, 0, 0);
-      }
-      // If between 7 AM and 7 PM, offer is expired (outside window)
-      else if (currentHour >= 7 && currentHour < 19) {
+      const isActive = mstHour >= 18 || mstHour < 6;
+
+      if (!isActive) {
         if (!isPreview) { setOfferExpired(true); return; }
         setOfferExpired(false);
         setTimeToExpiry({ hours: 5, minutes: 59, seconds: 59 });
         return;
       }
-      // If between 7 PM and midnight, target is 7 AM tomorrow
-      else {
-        target.setDate(target.getDate() + 1);
-        target.setHours(7, 0, 0, 0);
-      }
 
       setOfferExpired(false);
-      const diff = target - now;
-      if (diff <= 0) {
-        setOfferExpired(true);
-        return;
+
+      let targetMst = new Date(mstNow);
+      if (mstHour >= 18) {
+        targetMst.setDate(targetMst.getDate() + 1);
+        targetMst.setHours(6, 0, 0, 0);
+      } else {
+        targetMst.setHours(6, 0, 0, 0);
       }
+
+      const diff = targetMst - mstNow;
+      if (diff <= 0) { setOfferExpired(true); return; }
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
       const s = Math.floor((diff % 60000) / 1000);
@@ -517,7 +518,7 @@ export default function NightOwlPaymentPlan() {
           The Night Owl Payment Plan Has Ended
         </h1>
         <p style={{ fontFamily: "'Libre Baskerville', serif", fontSize: '16px', lineHeight: '1.7', color: '#999', maxWidth: '500px', marginBottom: '32px', fontStyle: 'italic' }}>
-          The $199 start option is only available between 7 PM and 7 AM. Come back tonight to lock in this payment plan.
+          The $199 start option is only available between 6 PM and 6 AM MST. Come back tonight after 6 PM MST to lock in this payment plan.
         </p>
         <a href="https://legaltags.com/survey" style={{
           display: 'inline-block', background: '#c9a227', color: '#0d0d1a', border: 'none',
