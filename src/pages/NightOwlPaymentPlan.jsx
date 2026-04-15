@@ -45,6 +45,9 @@ export default function NightOwlPaymentPlan() {
   };
 
   // Calculate time until 7 AM local time (offer window: 7 PM - 7 AM)
+  // ?preview=true bypasses time gate for testing
+  const isPreview = new URLSearchParams(window.location.search).get('preview') === 'true';
+
   useEffect(() => {
     const calcExpiry = () => {
       const now = new Date();
@@ -57,7 +60,9 @@ export default function NightOwlPaymentPlan() {
       }
       // If between 7 AM and 7 PM, offer is expired (outside window)
       else if (currentHour >= 7 && currentHour < 19) {
-        setOfferExpired(true);
+        if (!isPreview) { setOfferExpired(true); return; }
+        setOfferExpired(false);
+        setTimeToExpiry({ hours: 5, minutes: 59, seconds: 59 });
         return;
       }
       // If between 7 PM and midnight, target is 7 AM tomorrow
