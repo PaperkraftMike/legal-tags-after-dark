@@ -358,7 +358,7 @@ export default function NightOwlFlashSale() {
       fbclid: utmParams.fbclid,
       gclid: utmParams.gclid,
       source: 'legaltags_nightowl_flash',
-      offer_type: 'nightowl_500_off',
+      offer_type: 'nightowl_100_off',
       event_id: eventId,
       submitted_at: new Date().toISOString(),
       submitted_at_unix: Math.floor(Date.now() / 1000)
@@ -524,7 +524,7 @@ export default function NightOwlFlashSale() {
           The Night Owl Special Has Ended
         </h1>
         <p style={{ fontFamily: "'Libre Baskerville', serif", fontSize: '16px', lineHeight: '1.7', color: '#999', maxWidth: '500px', marginBottom: '32px', fontStyle: 'italic' }}>
-          This offer is only available between 6 PM and 6 AM MST. Come back tonight after 6 PM MST for $500 off your Montana registration.
+          This offer is only available between 6 PM and 6 AM MST. Come back tonight after 6 PM MST for $100 off your Montana registration.
         </p>
         <a href="https://legaltags.com/survey" style={{
           display: 'inline-block', background: '#c9a227', color: '#0d0d1a', border: 'none',
@@ -714,7 +714,7 @@ export default function NightOwlFlashSale() {
             fontSize: 'clamp(32px, 9vw, 52px)', fontWeight: '700', lineHeight: '0.95',
             letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '12px', color: '#e8e4d9'
           }}>
-            Night Owl Special<br/><span style={{ color: '#c9a227' }}>$500 Off</span>
+            Night Owl Special<br/><span style={{ color: '#c9a227' }}>$100 Off</span>
           </h1>
           <p className="serif" style={{ fontSize: '15px', lineHeight: '1.6', color: '#999', marginBottom: '8px', fontStyle: 'italic' }}>
             Register any vehicle from any state. No sales tax. No annual state inspections. No emissions.
@@ -773,7 +773,7 @@ export default function NightOwlFlashSale() {
             {step === 0 && (
               <div>
                 <h2 className="condensed" style={{ fontSize: '20px', fontWeight: '700', textAlign: 'center', marginBottom: '16px', color: '#e8e4d9' }}>
-                  Complete the survey now to unlock <span style={{ color: '#c9a227' }}>$500 off</span> your Montana LLC setup.
+                  Complete the survey now to unlock <span style={{ color: '#c9a227' }}>$100 off</span> your Montana registration.
                 </h2>
                 <p style={{ marginBottom: '20px', fontSize: '14px', color: '#999' }}>
                   Are you a Car Dealer, Collector or an Individual?
@@ -995,7 +995,7 @@ export default function NightOwlFlashSale() {
             {step === 11 && (
               <div>
                 <h2 className="condensed" style={{ fontSize: '20px', fontWeight: '700', textAlign: 'center', marginBottom: '8px', color: '#e8e4d9' }}>
-                  Last step to lock in your <span style={{ color: '#c9a227' }}>$500 Night Owl discount!</span>
+                  Last step to lock in your <span style={{ color: '#c9a227' }}>$100 Night Owl discount!</span>
                 </h2>
                 <p style={{ marginBottom: '20px', fontSize: '14px', color: '#999', textAlign: 'center' }}>
                   What is the best way to reach you?
@@ -1172,7 +1172,7 @@ export default function NightOwlFlashSale() {
           <div className="process-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
             {[
               { num: '1', title: 'Complete Survey', desc: 'Answer a few quick questions about your vehicle' },
-              { num: '2', title: 'We Create Your LLC', desc: 'We set up your Montana LLC same-day (included free — $500 Night Owl credit)' },
+              { num: '2', title: 'We Create Your LLC', desc: 'We set up your Montana LLC same-day (LLC fee always waived — $300 value)' },
               { num: '3', title: 'Vehicle Registered', desc: 'We register your vehicle under the LLC with Montana DMV' },
               { num: '4', title: 'Plates Delivered', desc: 'Your Montana plates ship directly to you in ~3 days' }
             ].map((s, i) => (
@@ -1201,7 +1201,7 @@ export default function NightOwlFlashSale() {
             We've helped thousands of customers with a 99.5% success rate. If we can't deliver, full refund. No questions asked.
           </p>
           <p className="mono" style={{ fontSize: '12px', color: '#666', marginBottom: '32px' }}>
-            Tonight only: $500 off (normally $300 off during the day)
+            Tonight only: extra $100 off, on top of the free LLC setup ($300 value)
           </p>
           <button className="btn-primary" style={{ maxWidth: '320px' }}
             onClick={() => {
@@ -1210,7 +1210,7 @@ export default function NightOwlFlashSale() {
               if (surveyEl) surveyEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
               else window.scrollTo({ top: 0, behavior: 'smooth' });
             }}>
-            Claim $500 Off · Tonight Only →
+            Claim $100 Off · Tonight Only →
           </button>
         </div>
       </section>
@@ -1243,7 +1243,7 @@ export default function NightOwlFlashSale() {
             <span style={{ color: '#888' }}> from {socialProofItems[toastIndex].state}</span>
           </div>
           <div className="mono" style={{ fontSize: '11px', color: '#c9a227', fontWeight: '500', marginTop: '2px' }}>
-            just claimed $500 Night Owl savings
+            just claimed $100 Night Owl savings
           </div>
           <div className="mono" style={{ fontSize: '10px', color: '#555', marginTop: '2px' }}>
             {socialProofItems[toastIndex].time}
@@ -1307,7 +1307,7 @@ export default function NightOwlFlashSale() {
               'Vehicle type confirmed',
               'Matching registration package',
               'Calculating savings',
-              'Applying $500 Night Owl credit'
+              'Applying $100 Night Owl credit'
             ].map((text, i) => (
               <div key={i} style={{
                 display: 'flex', alignItems: 'center', gap: '12px',

@@ -40,7 +40,7 @@ import CollectorProgram from './pages/checkout/CollectorProgram'
 export default function App() {
   return (
     <Routes>
-      {/* Offer 1: Night Owl Flash Sale ($500 off) */}
+      {/* Offer 1: Night Owl Flash Sale ($100 off) */}
       <Route path="/offer1" element={<NightOwlFlashSale />} />
       
       {/* Offer 2: Night Owl Payment Plan ($199 tonight) */}
