@@ -570,8 +570,8 @@ export default function LegalTagsCheckout() {
                       }}
                     />
                     <span className="mono" style={{ fontSize: '13px', color: '#555', lineHeight: '1.6' }}>
-                      I agree to the <a href="#" style={{ color: '#1e3a5f' }}>Terms of Service</a> and{' '}
-                      <a href="#" style={{ color: '#1e3a5f' }}>Privacy Policy</a>. I understand that Legal Tags 
+                      I agree to the <a href="https://legaltags.com/terms-and-conditions" target="_blank" rel="noopener noreferrer" style={{ color: '#1e3a5f' }}>Terms of Service</a> and{' '}
+                      <a href="https://legaltags.com/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: '#1e3a5f' }}>Privacy Policy</a>. I understand that Legal Tags
                       will create a Montana LLC on my behalf for vehicle registration purposes.
                     </span>
                   </label>
@@ -583,7 +583,7 @@ export default function LegalTagsCheckout() {
                   className="btn-primary"
                   disabled={!agreedToTerms || isProcessing}
                 >
-                  {isProcessing ? 'Processing...' : `Complete Order — $${finalPrice}`}
+                  {isProcessing ? 'Processing...' : `Complete Order · $${finalPrice}`}
                 </button>
 
                 <div style={{ 
@@ -807,7 +807,7 @@ export default function LegalTagsCheckout() {
             fontStyle: 'italic',
             marginBottom: '32px'
           }}>
-            No inspections, no SMOG, no sales tax — and you never visit the DMV again.
+            No annual state inspections, no SMOG, no sales tax, and you never visit the DMV again.
           </p>
           
           <div style={{ 
@@ -817,8 +817,8 @@ export default function LegalTagsCheckout() {
           }}>
             {[
               { title: 'No Sales Tax', desc: 'Montana has no state sales tax, saving you thousands on high-value vehicles.' },
-              { title: 'No Inspections', desc: 'No annual safety or emissions inspections required — ever.' },
-              { title: 'Permanent Registration', desc: 'Vehicles 11+ years old can be permanently registered. Pay once, done.' },
+              { title: 'No Annual State Inspections', desc: 'No annual safety or emissions inspections required, ever.' },
+              { title: 'Permanent Registration', desc: 'Vehicles 11+ years old can be permanently registered (qualifying vehicles). Pay once, done.' },
               { title: 'Lost Title Solutions', desc: "No title? No problem. Montana's simple process can help you retitle." }
             ].map((item, i) => (
               <div key={i} style={{

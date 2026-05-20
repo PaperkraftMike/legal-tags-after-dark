@@ -49,7 +49,7 @@ export default function App() {
       {/* Default route goes to offer1 */}
       <Route path="/" element={<NightOwlFlashSale />} />
       
-      {/* All checkout routes — shared across both offers */}
+      {/* All checkout routes, shared across both offers */}
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/registration-car-newer" element={<RegistrationCarNewer />} />
       <Route path="/registration-car-older" element={<RegistrationCarOlder />} />

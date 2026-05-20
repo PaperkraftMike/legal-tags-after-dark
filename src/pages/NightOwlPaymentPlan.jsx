@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { clarityEvent, fbqTrack } from '../utils/analytics';
 
 export default function NightOwlPaymentPlan() {
   const [step, setStep] = useState(0);
@@ -21,10 +22,7 @@ export default function NightOwlPaymentPlan() {
     termsAgreed: true
   });
   const [flashingOption, setFlashingOption] = useState(null);
-  const [visitorCount, setVisitorCount] = useState(12);
   const [stepHistory, setStepHistory] = useState([0]);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastIndex, setToastIndex] = useState(0);
   const [validationErrors, setValidationErrors] = useState({});
   const [showAnalyzing, setShowAnalyzing] = useState(false);
   const [analyzingStep, setAnalyzingStep] = useState(0);
@@ -33,16 +31,6 @@ export default function NightOwlPaymentPlan() {
   const [timeToExpiry, setTimeToExpiry] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const [offerExpired, setOfferExpired] = useState(false);
   const pendingRedirect = useRef(null);
-
-  // Clarity helper
-  const clarityEvent = (name, data) => {
-    if (window.clarity) {
-      if (data) {
-        window.clarity('set', name, typeof data === 'object' ? JSON.stringify(data) : String(data));
-      }
-      window.clarity('event', name);
-    }
-  };
 
   // Offer window: 6 PM MST to 6 AM MST (MST = UTC-7)
   // ?preview=true bypasses time gate for testing
@@ -122,18 +110,6 @@ export default function NightOwlPaymentPlan() {
     return id;
   });
 
-  // Night owl social proof
-  const socialProofItems = [
-    { name: 'James T.', state: 'CA', time: 'just now' },
-    { name: 'Lisa P.', state: 'FL', time: '3 min ago' },
-    { name: 'Robert K.', state: 'TX', time: '6 min ago' },
-    { name: 'Amanda L.', state: 'NY', time: '8 min ago' },
-    { name: 'Steve H.', state: 'AZ', time: '11 min ago' },
-    { name: 'Karen W.', state: 'NJ', time: '14 min ago' },
-    { name: 'Tom B.', state: 'WA', time: '17 min ago' },
-    { name: 'Michelle G.', state: 'CT', time: '20 min ago' },
-  ];
-
   // ============================================================
   // STEP DEFINITIONS
   // ============================================================
@@ -173,7 +149,7 @@ export default function NightOwlPaymentPlan() {
   };
 
   // ============================================================
-  // REDIRECT URL LOGIC — identical to main funnel
+  // REDIRECT URL LOGIC: identical to main funnel
   // ============================================================
   const getRedirectUrl = () => {
     const d = formData;
@@ -327,7 +303,7 @@ export default function NightOwlPaymentPlan() {
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
 
-    // GHL Webhook — same endpoint, tagged with nightowl_payment source
+    // GHL Webhook: same endpoint, tagged with nightowl_payment source
     const webhookPayload = {
       first_name: firstName,
       last_name: lastName,
@@ -373,15 +349,13 @@ export default function NightOwlPaymentPlan() {
     });
 
     // Facebook Pixel AddToCart
-    if (typeof window.fbq === 'function') {
-      window.fbq('track', 'AddToCart', {
-        content_name: formData.vehicleType,
-        content_category: formData.hasTitle === 'yes' ? 'Registration' : 'Retitle',
-        content_ids: [redirectUrl],
-        content_type: 'product',
-        currency: 'USD',
-      }, { eventID: eventId + '_atc' });
-    }
+    fbqTrack('AddToCart', {
+      content_name: formData.vehicleType,
+      content_category: formData.hasTitle === 'yes' ? 'Registration' : 'Retitle',
+      content_ids: [redirectUrl],
+      content_type: 'product',
+      currency: 'USD',
+    }, { eventID: eventId + '_atc' });
 
     // Show analyzing screen, then redirect
     pendingRedirect.current = redirectUrl;
@@ -434,30 +408,9 @@ export default function NightOwlPaymentPlan() {
     return Math.min(100, Math.round((stepHistory.length / maxSteps) * 100));
   };
 
-  // Live visitor count + social proof toast
+  // Page view tracking
   useEffect(() => {
     clarityEvent('nightowl_payment_page_view');
-
-    const interval = setInterval(() => {
-      setVisitorCount(prev => {
-        const change = Math.floor(Math.random() * 5) - 2;
-        return Math.max(6, Math.min(22, prev + change));
-      });
-    }, 3000 + Math.random() * 2000);
-
-    let toastTimeout;
-    const showNextToast = () => {
-      setToastVisible(true);
-      setTimeout(() => setToastVisible(false), 4500);
-      setToastIndex(prev => (prev + 1) % 8);
-      toastTimeout = setTimeout(showNextToast, 18000 + Math.random() * 12000);
-    };
-    toastTimeout = setTimeout(showNextToast, 10000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(toastTimeout);
-    };
   }, []);
 
   // ============================================================
@@ -493,9 +446,15 @@ export default function NightOwlPaymentPlan() {
   };
 
   const testimonials = [
-    { name: 'Mike R.', location: 'California', text: 'Saved over $8,000 in sales tax on my RV. Legal Tags handled everything including the LLC setup. Plates arrived in 3 days!' },
-    { name: 'Sarah T.', location: 'Texas', text: 'Had a car with no title that Texas said was impossible to register. Legal Tags got it done in 2 weeks. Amazing service.' },
-    { name: 'James K.', location: 'Florida', text: 'The process was so simple. They set up my LLC, registered my boat, and I never had to leave my house. Highly recommend.' }
+    { name: 'Bobbie Jo Vann', location: 'California', date: '3 weeks ago', text: "I have three vehicles registered in Montana through Legal Tags. I've been stopped by the police a couple times asking why I have Montana plates and I told them I have a holding company in Montana. I show them the registration. I have insurance here in California and they send me on my way." },
+    { name: 'Nick Serrapica', location: 'Google Review', date: '1 week ago', text: 'I was skeptical. Isabelle was my agent and did great. I got my plates and registration about three weeks later and my title three weeks after that. Saved my butt big time. Very satisfied.' },
+    { name: 'Jacob Henry', location: 'New York', date: '1 week ago', text: 'This is legit as it gets. My Mustang wont pass NY inspection due to mods, not an issue with Legal Tags. 2 week turn around and I am rolling again.' },
+    { name: 'Steven GM', location: 'New Jersey', date: '2 weeks ago', text: 'Legitimate. They received the title on Thursday 03/05, and by the Friday of the following week, I had my registration and license plates. The whole process was easy and straightforward. My side-by-side is no longer just an ornament, thanks Legal Tags.' },
+    { name: 'Jennifer Rushin', location: 'Google Review', date: '5 days ago', text: 'Very friendly and helpful. They answered any questions we had. The process was straight forward and easy. They saved us a bunch of money and we received the tags in 2 weeks. Will definitely be using again.' },
+    { name: 'Ryan Taylor', location: 'Google Review', date: '1 week ago', text: 'Would give 10 stars if I could. Amazing customer service. Porter was a pleasure to deal with on the phone when inquiring about my shipping status. Highly recommend them.' },
+    { name: 'Luis Hoyos', location: 'Google Review', date: '2 weeks ago', text: 'A professional and efficient team. What stands out most is their attention to detail and the speed at which they process requests. They simplify a complex process with clear communication and make sure every document is accurate and compliant.' },
+    { name: 'Jason Palmasano', location: 'Google Review', date: '4 days ago', text: 'The folks at Legal Tags were very helpful in helping me get plates and a title for my pickup. Will definitely do business again.' },
+    { name: 'Tim Hagaman', location: 'Local Guide, 32 reviews', date: '3 weeks ago', text: 'Excellent service with friendly and knowledgeable people. If you are looking for an alternative, this is a great one. I especially appreciate the custom tags and the assortment of groups they support.' }
   ];
 
   const pad = (n) => String(n).padStart(2, '0');
@@ -636,24 +595,6 @@ export default function NightOwlPaymentPlan() {
           .process-grid { grid-template-columns: repeat(4, 1fr) !important; }
           .testimonials-grid { grid-template-columns: repeat(3, 1fr) !important; }
           .vehicle-grid { grid-template-columns: repeat(4, 1fr); }
-          .social-proof-toast { bottom: 20px; left: 20px; }
-        }
-        .social-proof-toast {
-          position: fixed; bottom: 12px; left: 12px; right: 12px; z-index: 90;
-          background: #1a1a2e; border: 2px solid #c9a227; border-radius: 10px;
-          padding: 12px 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-          transform: translateX(-120%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          display: flex; align-items: center; gap: 10px;
-        }
-        @media (min-width: 768px) {
-          .social-proof-toast { max-width: 360px; right: auto; }
-        }
-        .social-proof-toast.visible { transform: translateX(0); }
-        .toast-avatar {
-          width: 36px; height: 36px; background: #c9a227; border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          color: #0d0d1a; font-family: 'Oswald', sans-serif; font-size: 14px;
-          font-weight: 700; flex-shrink: 0;
         }
         .countdown-digit {
           display: inline-block; background: #c9a227; color: #0d0d1a;
@@ -1057,9 +998,9 @@ export default function NightOwlPaymentPlan() {
                     </span>
                   </label>
                   <div style={{ textAlign: 'center', marginTop: '8px' }}>
-                    <a href="#" className="mono" style={{ fontSize: '12px', color: '#c9a227' }}>Privacy Policy</a>
+                    <a href="https://legaltags.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="mono" style={{ fontSize: '12px', color: '#c9a227' }}>Privacy Policy</a>
                     <span className="mono" style={{ fontSize: '12px', color: '#555', margin: '0 8px' }}>|</span>
-                    <a href="#" className="mono" style={{ fontSize: '12px', color: '#c9a227' }}>Terms of Service</a>
+                    <a href="https://legaltags.com/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="mono" style={{ fontSize: '12px', color: '#c9a227' }}>Terms of Service</a>
                   </div>
                 </div>
               </div>
@@ -1080,12 +1021,9 @@ export default function NightOwlPaymentPlan() {
                 letterSpacing: '1px', cursor: stepHistory.length <= 1 ? 'not-allowed' : 'pointer'
               }}>← PREV</button>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div className="pulse-dot" />
-              <span className="mono" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
-                <strong style={{ color: '#c9a227' }}>{visitorCount}</strong> viewing
-              </span>
-            </div>
+            <span className="mono" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
+              🔒 Secure
+            </span>
 
             {step !== 11 ? (
               <button type="button" onClick={handleNext} disabled={!canProceed()}
@@ -1109,19 +1047,46 @@ export default function NightOwlPaymentPlan() {
         </div>
       </section>
 
+      {/* Google Reviews Trust Strip */}
+      <section style={{ padding: '20px', background: '#0d0d1a' }}>
+        <a href="https://www.google.com/search?q=Legal+Tags+Philipsburg+MT" target="_blank" rel="noopener noreferrer"
+          onClick={() => clarityEvent('nightowl_payment_google_reviews_click')}
+          style={{
+            display: 'block', maxWidth: '500px', margin: '0 auto', textDecoration: 'none',
+            background: '#12121f', border: '1px solid rgba(201,162,39,0.3)', borderRadius: '8px',
+            padding: '16px 20px', textAlign: 'center'
+          }}>
+          <div style={{ color: '#c9a227', fontSize: '20px', letterSpacing: '2px', marginBottom: '4px' }}>★★★★★</div>
+          <div className="condensed" style={{ fontSize: '16px', fontWeight: '700', letterSpacing: '1px', color: '#e8e4d9', marginBottom: '4px' }}>
+            4.8 from 273 reviews
+          </div>
+          <div className="mono" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>
+            Verified MT business, Philipsburg, MT
+          </div>
+          <span className="mono" style={{ fontSize: '12px', color: '#c9a227', fontWeight: '500' }}>Verify →</span>
+        </a>
+      </section>
+
       {/* Testimonials */}
       <section style={{ background: '#0a0a16', padding: '40px 20px' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <h2 className="condensed" style={{ fontSize: '24px', fontWeight: '700', letterSpacing: '1px', textTransform: 'uppercase', textAlign: 'center', marginBottom: '8px' }}>Trusted by Thousands</h2>
-          <p className="mono" style={{ textAlign: 'center', color: '#666', fontSize: '13px', marginBottom: '32px' }}>10,000+ vehicles registered · 99.5% success rate</p>
+          <p className="mono" style={{ textAlign: 'center', color: '#666', fontSize: '13px', marginBottom: '32px' }}>4.8 from 273 Google reviews</p>
           <div className="testimonials-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
             {testimonials.map((t, i) => (
               <div key={i} className="testimonial-card">
                 <div style={{ color: '#c9a227', marginBottom: '8px' }}>★★★★★</div>
                 <p className="serif" style={{ fontSize: '14px', lineHeight: '1.6', color: '#bbb', marginBottom: '12px', fontStyle: 'italic' }}>"{t.text}"</p>
-                <div className="mono" style={{ fontSize: '12px', color: '#888' }}><strong style={{ color: '#e8e4d9' }}>{t.name}</strong> · {t.location}</div>
+                <div className="mono" style={{ fontSize: '12px', color: '#888' }}><strong style={{ color: '#e8e4d9' }}>{t.name}</strong> · {t.location}{t.date ? <span style={{ color: '#555' }}> · {t.date}</span> : null}</div>
               </div>
             ))}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '24px' }}>
+            <a href="https://www.google.com/search?q=Legal+Tags+Philipsburg+MT" target="_blank" rel="noopener noreferrer"
+              onClick={() => clarityEvent('nightowl_payment_google_reviews_click')}
+              className="mono" style={{ fontSize: '13px', color: '#c9a227', textDecoration: 'none', fontWeight: '500' }}>
+              Read all 273 reviews on Google →
+            </a>
           </div>
         </div>
       </section>
@@ -1141,8 +1106,8 @@ export default function NightOwlPaymentPlan() {
             {[
               { title: 'Save Thousands in Sales Tax', desc: 'A $60,000 vehicle in California costs $5,400 in sales tax alone. Montana charges $0. The savings pay for your registration many times over.' },
               { title: 'No Annual State Inspections, Ever', desc: 'No annual safety, emissions, or SMOG tests. No failed inspections holding up your registration. Register once, drive forever.' },
-              { title: 'Permanent Registration Available', desc: 'Vehicles 11+ years old can qualify for permanent registration — one payment, no renewals, no annual fees (qualifying vehicles).' },
-              { title: 'Lost Title Recovery', desc: "Can't find your title? Inherited a vehicle? Bought at auction with no paperwork? We retitle vehicles other states say are impossible — 99.5% success rate." }
+              { title: 'Permanent Registration Available', desc: 'Vehicles 11+ years old can qualify for permanent registration (qualifying vehicles): one payment, no renewals, no annual fees.' },
+              { title: 'Lost Title Recovery', desc: "Can't find your title? Inherited a vehicle? Bought at auction with no paperwork? We retitle vehicles other states say are impossible, with a 99.5% success rate." }
             ].map((item, i) => (
               <div key={i} className="check-item">
                 <div className="checkmark">✓</div>
@@ -1161,7 +1126,7 @@ export default function NightOwlPaymentPlan() {
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
           <h2 className="condensed" style={{ fontSize: '28px', fontWeight: '700', letterSpacing: '1px', textTransform: 'uppercase', textAlign: 'center', marginBottom: '12px' }}>How It Works</h2>
           <p className="serif" style={{ fontSize: '14px', textAlign: 'center', color: '#888', marginBottom: '40px', fontStyle: 'italic', padding: '0 20px' }}>
-            Montana law allows out-of-state residents to register vehicles through an LLC. We handle the entire process for you — no Montana visit required.
+            Montana law allows out-of-state residents to register vehicles through an LLC. We handle the entire process for you, no Montana visit required.
           </p>
           <div className="process-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
             {[
@@ -1215,40 +1180,22 @@ export default function NightOwlPaymentPlan() {
           <div className="condensed" style={{ fontSize: '18px', fontWeight: '700', letterSpacing: '2px', marginBottom: '8px' }}>LEGAL TAGS</div>
           <div className="mono" style={{ fontSize: '12px', opacity: 0.5 }}>Montana Vehicle Registration & Titling</div>
         </div>
-        <div className="mono" style={{ fontSize: '13px', marginBottom: '24px' }}>
+        <div className="mono" style={{ fontSize: '13px', marginBottom: '12px' }}>
           <a href="tel:406-510-0599" onClick={() => clarityEvent('nightowl_payment_phone_footer')} style={{ color: '#c9a227', textDecoration: 'none', fontWeight: '500' }}>📞 406-510-0599</a>
           <span style={{ opacity: 0.3, margin: '0 12px' }}>|</span>
+          <a href="mailto:support@legaltags.com" onClick={() => clarityEvent('nightowl_payment_email_footer')} style={{ color: '#c9a227', textDecoration: 'none', fontWeight: '500' }}>✉ support@legaltags.com</a>
+        </div>
+        <div className="mono" style={{ fontSize: '13px', marginBottom: '24px' }}>
           <span style={{ opacity: 0.5 }}>M-F 8am-8pm MT</span>
         </div>
-        <div className="mono" style={{ fontSize: '11px', opacity: 0.3, marginBottom: '16px' }}>126 W Broadway #107, Philipsburg, MT 59858</div>
+        <div className="mono" style={{ fontSize: '11px', opacity: 0.3, marginBottom: '8px' }}>126 W Broadway #107, Philipsburg, MT 59858</div>
+        <div className="mono" style={{ fontSize: '11px', marginBottom: '16px' }}>
+          <a href="https://biz.sosmt.gov/api/report/FromActiveReport/0/Agents/0" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Verified MT Registered Agent (SOS)</a>
+        </div>
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '20px', marginTop: '20px' }}>
           <span className="mono" style={{ fontSize: '10px', opacity: 0.3 }}>© 2026 Legal Tags · All Rights Reserved</span>
         </div>
       </footer>
-
-      {/* Social Proof Toast */}
-      <div className={`social-proof-toast ${toastVisible ? 'visible' : ''}`}>
-        <div className="toast-avatar">
-          {socialProofItems[toastIndex].name.charAt(0)}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="mono" style={{ fontSize: '12px', color: '#e8e4d9', lineHeight: '1.4' }}>
-            <strong>{socialProofItems[toastIndex].name}</strong>
-            <span style={{ color: '#888' }}> from {socialProofItems[toastIndex].state}</span>
-          </div>
-          <div className="mono" style={{ fontSize: '11px', color: '#c9a227', fontWeight: '500', marginTop: '2px' }}>
-            just started for $199 tonight
-          </div>
-          <div className="mono" style={{ fontSize: '10px', color: '#555', marginTop: '2px' }}>
-            {socialProofItems[toastIndex].time}
-          </div>
-        </div>
-        <button onClick={() => setToastVisible(false)} style={{
-          position: 'absolute', top: '6px', right: '8px', background: 'none',
-          border: 'none', fontSize: '14px', color: '#555', cursor: 'pointer',
-          padding: '2px 4px', lineHeight: 1
-        }}>×</button>
-      </div>
 
       {/* Analyzing Overlay */}
       {showAnalyzing && (

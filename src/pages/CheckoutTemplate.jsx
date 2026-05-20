@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { clarityEvent } from '../utils/analytics';
 
 export default function CheckoutTemplate({
   samcartSlug = '',
@@ -6,8 +7,6 @@ export default function CheckoutTemplate({
   vehicleSubtitle = '',
   headlineAction = 'Registration',
   headlineVehicle = 'Vehicle',
-  priceAfter = '$1,097',
-  socialProof = [],
   includesPlates = true,
   includedItems = null,
   benefits = null,
@@ -17,31 +16,18 @@ export default function CheckoutTemplate({
 }) {
   const [contactInfo, setContactInfo] = useState({ fullName: '', email: '', phone: '' });
   const [showMobileCTA, setShowMobileCTA] = useState(false);
-  const [countdownMinutes, setCountdownMinutes] = useState(14);
-  const [countdownSeconds, setCountdownSeconds] = useState(59);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastIndex, setToastIndex] = useState(0);
   const checkoutRef = useRef(null);
 
-  const fireClarityEvent = (name, data) => {
-    if (window.clarity) {
-      if (data) window.clarity('set', name, typeof data === 'object' ? JSON.stringify(data) : String(data));
-      window.clarity('event', name);
-    }
-  };
-
-  const socialProofItems = socialProof.length > 0 ? socialProof : [
-    { name: 'James T.', state: 'CA', action: 'just registered', vehicle: 'Vehicle', time: '2 min ago' },
-    { name: 'Sarah M.', state: 'NY', action: 'saved $4,800', vehicle: 'Vehicle', time: '5 min ago' },
-    { name: 'Robert K.', state: 'FL', action: 'just registered', vehicle: 'Vehicle', time: '8 min ago' },
-    { name: 'Amanda L.', state: 'TX', action: 'saved $3,200', vehicle: 'Vehicle', time: '11 min ago' },
-    { name: 'Michael D.', state: 'NJ', action: 'just registered', vehicle: 'Vehicle', time: '14 min ago' },
-    { name: 'Chris W.', state: 'IL', action: 'saved $5,400', vehicle: 'Vehicle', time: '18 min ago' },
-    { name: 'Patricia R.', state: 'WA', action: 'just registered', vehicle: 'Vehicle', time: '22 min ago' },
-    { name: 'Daniel F.', state: 'CT', action: 'saved $6,100', vehicle: 'Vehicle', time: '25 min ago' },
-  ];
+  const fireClarityEvent = clarityEvent;
 
   const isRetitle = headlineAction.toLowerCase().includes('retitle');
+
+  // Coupon rides in via URL param from the offer page (gated by its live
+  // countdown). Empty when absent, so SamCart charges the standard price.
+  const couponCode = (() => {
+    try { return new URLSearchParams(window.location.search).get('coupon') || ''; }
+    catch (e) { return ''; }
+  })();
 
   useEffect(() => {
     const existing = document.querySelector('script[src="https://static.samcart.com/checkouts/sc-checkout.js"]');
@@ -62,23 +48,6 @@ export default function CheckoutTemplate({
 
     fireClarityEvent('checkout_page_view', { product_slug: samcartSlug, vehicle_label: vehicleLabel });
 
-    let totalSeconds;
-    try {
-      const savedTime = sessionStorage.getItem('legalTagsCountdown');
-      totalSeconds = savedTime ? parseInt(savedTime, 10) : 15 * 60;
-      if (!savedTime) sessionStorage.setItem('legalTagsCountdown', totalSeconds.toString());
-    } catch(e) { totalSeconds = 15 * 60; }
-
-    setCountdownMinutes(Math.floor(totalSeconds / 60));
-    setCountdownSeconds(totalSeconds % 60);
-
-    const countdownInterval = setInterval(() => {
-      totalSeconds = Math.max(0, totalSeconds - 1);
-      setCountdownMinutes(Math.floor(totalSeconds / 60));
-      setCountdownSeconds(totalSeconds % 60);
-      try { sessionStorage.setItem('legalTagsCountdown', totalSeconds.toString()); } catch(e) {}
-    }, 1000);
-
     const handleScroll = () => {
       if (checkoutRef.current) {
         const rect = checkoutRef.current.getBoundingClientRect();
@@ -87,19 +56,8 @@ export default function CheckoutTemplate({
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
 
-    let toastTimeout;
-    const showNextToast = () => {
-      setToastVisible(true);
-      setTimeout(() => setToastVisible(false), 4500);
-      setToastIndex(prev => (prev + 1) % socialProofItems.length);
-      toastTimeout = setTimeout(showNextToast, 15000 + Math.random() * 10000);
-    };
-    toastTimeout = setTimeout(showNextToast, 8000);
-
     return () => {
-      clearInterval(countdownInterval);
       window.removeEventListener('scroll', handleScroll);
-      clearTimeout(toastTimeout);
     };
   }, []);
 
@@ -121,24 +79,20 @@ export default function CheckoutTemplate({
   const itemsToShow = includedItems || defaultIncludedItems;
 
   const defaultBenefits = [
-    { title: 'No Safety Inspections', desc: 'Unlike some states that require annual inspections, Montana does not have such requirements, making the registration process simpler.' },
+    { title: 'No Annual State Inspections', desc: 'No annual safety, emissions, or SMOG tests holding up your registration. Register once, drive on.' },
     { title: 'No Sales Tax', desc: 'Montana has no state sales tax, which means you can save a significant amount compared to registering in states with high sales tax.' },
     ...(includesPlates
-      ? [{ title: 'Permanent Registration', desc: 'For vehicles manufactured in 2015 or older, Montana allows permanent registration, meaning you pay once and never have to renew!' }]
+      ? [{ title: 'Permanent Registration', desc: 'Vehicles 11+ years old can qualify for permanent registration (qualifying vehicles): pay once, no renewals.' }]
       : []
     ),
     { title: 'No Title? No Problem', desc: "Montana's lack of red tape makes it possible for you to re-title your vehicle if the title has been lost, stolen or damaged!" },
   ];
   const benefitsToShow = benefits || defaultBenefits;
 
-  const defaultTestimonials = isRetitle ? [
-    { quote: `Had a ${headlineVehicle.toLowerCase()} with no title that my state said was impossible to register. Legal Tags got it done in 2 weeks. Amazing service.`, author: 'Mike R.', detail: headlineVehicle, state: 'Texas' },
-    { quote: "One payment and I never deal with the DMV again. No inspections, no emissions tests. Best decision I've made.", author: 'Jennifer L.', detail: headlineVehicle, state: 'New York' },
-    { quote: "The process was incredibly simple. LLC, title, registration — all handled remotely. Wish I'd done this years ago.", author: 'David K.', detail: headlineVehicle, state: 'Texas' },
-  ] : [
-    { quote: `Saved over $8,000 in sales tax on my ${headlineVehicle.toLowerCase()}. Legal Tags handled everything — LLC, registration, plates arrived in 3 days.`, author: 'Mike R.', detail: headlineVehicle, state: 'California' },
-    { quote: "One payment and I never deal with the DMV again. No inspections, no emissions tests. Best decision I've made for my car.", author: 'Jennifer L.', detail: headlineVehicle, state: 'New York' },
-    { quote: "The process was incredibly simple. LLC, registration, plates — all handled remotely. Wish I'd done this years ago.", author: 'David K.', detail: headlineVehicle, state: 'Texas' },
+  const defaultTestimonials = [
+    { quote: "This is legit as it gets. My Mustang wont pass NY inspection due to mods, not an issue with Legal Tags. 2 week turn around and I am rolling again.", author: 'Jacob Henry', detail: 'Google Review', state: 'New York' },
+    { quote: "I have three vehicles registered in Montana through Legal Tags. I've been stopped by the police a couple times asking why I have Montana plates and I told them I have a holding company in Montana. I show them the registration. I have insurance here in California and they send me on my way.", author: 'Bobbie Jo Vann', detail: 'Google Review', state: 'California' },
+    { quote: "Legitimate. They received the title and by the Friday of the following week I had my registration and license plates. The whole process was easy and straightforward.", author: 'Steven GM', detail: 'Google Review', state: 'New Jersey' },
   ];
   const testimonialsToShow = testimonials || defaultTestimonials;
 
@@ -146,7 +100,7 @@ export default function CheckoutTemplate({
     { q: 'Is registering in Montana legal?', a: 'Yes. Montana law allows non-residents to register vehicles through a Montana LLC. Thousands of vehicle owners across all 50 states use this method.' },
     { q: 'Do I need to visit Montana?', a: 'No. Everything is handled remotely. LLC created same-day, vehicle registered with Montana DMV, plates shipped to you.' },
     { q: 'Can I drive in my state with Montana plates?', a: 'Yes. Your vehicle is legally registered in Montana. You can drive on Montana plates in any state.' },
-    { q: "What's the $300 LLC credit?", a: "Competitors charge $300+ just for LLC setup. We include it free — that's the credit applied to your order." },
+    { q: "What's the $300 LLC credit?", a: "Competitors charge $300+ just for LLC setup. We include it free: that's the credit applied to your order." },
   ];
   const faqToShow = faqOverrides || defaultFaq;
 
@@ -179,10 +133,6 @@ export default function CheckoutTemplate({
         .mobile-sticky-cta.visible { transform: translateY(0); }
         .guarantee-inline { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f0f7ff; border: 1px solid #c8ddf0; border-radius: 8px; }
         .guarantee-shield { width: 32px; height: 32px; background: #1e3a5f; color: #fff; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 16px; flex-shrink: 0; }
-        .social-proof-toast { position: fixed; bottom: 20px; left: 20px; z-index: 90; background: #fff; border: 2px solid #1e3a5f; border-radius: 10px; padding: 12px 16px; max-width: 340px; box-shadow: 0 8px 30px rgba(0,0,0,0.15); transform: translateX(-120%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 10px; }
-        .social-proof-toast.visible { transform: translateX(0); }
-        @media (max-width: 767px) { .social-proof-toast { bottom: 70px; left: 12px; right: 12px; max-width: none; } }
-        .toast-avatar { width: 36px; height: 36px; background: #1e3a5f; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 700; flex-shrink: 0; }
         .progress-bar { display: flex; align-items: center; justify-content: center; gap: 0; margin: 0 auto; max-width: 300px; }
         .progress-circle { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Oswald', sans-serif; font-size: 12px; font-weight: 700; flex-shrink: 0; }
         .progress-circle.done { background: #1e3a5f; color: #fff; }
@@ -209,13 +159,10 @@ export default function CheckoutTemplate({
         @media (min-width: 1024px) { .two-col { gap: 56px !important; grid-template-columns: 1fr 460px !important; } }
       `}</style>
 
-      {/* Urgency Bar */}
+      {/* Trust Bar */}
       <div className="urgency-bar">
-        <span>🔒 $300 CREDIT EXPIRES IN </span>
-        <span style={{ background: '#fff', color: '#8b1a1a', padding: '2px 8px', borderRadius: '3px', fontWeight: '700', fontFamily: "'DM Mono', monospace", fontSize: '13px' }}>
-          {String(countdownMinutes).padStart(2, '0')}:{String(countdownSeconds).padStart(2, '0')}
-        </span>
-        <span className="desktop-only"> — PRICE INCREASES TO {priceAfter} AFTER</span>
+        <span>🔒 $300 LLC CREDIT APPLIED</span>
+        <span className="desktop-only"> · FREE MONTANA LLC SETUP ($300 VALUE)</span>
       </div>
 
       {/* Header */}
@@ -281,10 +228,10 @@ export default function CheckoutTemplate({
                 }
               </h1>
               <p className="condensed" style={{ fontSize: '13px', fontWeight: '500', color: '#666', marginBottom: '12px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                {vehicleSubtitle} · No Sales Tax · No Inspections{includesPlates ? ' · Plates in 3 Days' : ''}
+                {vehicleSubtitle} · No Sales Tax · No Annual State Inspections{includesPlates ? ' · Plates in 3 Days' : ''}
               </p>
 
-              {/* Mid-page CTA — for people already sold from the survey */}
+              {/* Mid-page CTA for people already sold from the survey */}
               <div className="mobile-only" style={{ marginBottom: '20px' }}>
                 <button onClick={scrollToCheckout} className="order-cta-btn">
                   Complete Your Order →
@@ -300,7 +247,7 @@ export default function CheckoutTemplate({
                   Why Register in Montana?
                 </h2>
                 <p className="condensed" style={{ fontSize: '13px', fontWeight: '600', color: '#8b1a1a', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                  No Inspections, No SMOG and you will never visit the DMV again!
+                  No Annual State Inspections, No SMOG, and you never visit the DMV again!
                 </p>
                 {benefitsToShow.map((item, i) => (
                   <div key={i} className="check-item">
@@ -334,21 +281,22 @@ export default function CheckoutTemplate({
                 <div key={i} className={`mini-testimonial${i === 2 ? ' desktop-only' : ''}`}>
                   <div style={{ color: '#f5c842', fontSize: '12px', marginBottom: '4px' }}>★★★★★</div>
                   <p className="serif" style={{ fontSize: '13px', lineHeight: '1.5', color: '#333', fontStyle: 'italic' }}>"{t.quote}"</p>
-                  <div className="mono" style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>— {t.author} · {t.detail} · {t.state}</div>
+                  <div className="mono" style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}><strong style={{ color: '#1a1a1a' }}>{t.author}</strong> · {t.detail} · {t.state}</div>
                 </div>
               ))}
 
               {/* Google reviews */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fff', border: '1px solid #e5e0d5', borderRadius: '8px', padding: '10px 14px', margin: '16px 0' }}>
+              <a href="https://www.google.com/search?q=Legal+Tags+Philipsburg+MT" target="_blank" rel="noopener noreferrer" onClick={() => fireClarityEvent('checkout_google_reviews_click')} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fff', border: '1px solid #e5e0d5', borderRadius: '8px', padding: '10px 14px', margin: '16px 0', textDecoration: 'none', color: 'inherit' }}>
                 <div>
                   <div style={{ fontSize: '22px', fontWeight: '700', fontFamily: "'Oswald', sans-serif", color: '#1a1a1a', lineHeight: 1 }}>4.8</div>
                   <div style={{ color: '#fbbc04', fontSize: '16px', letterSpacing: '1px' }}>★★★★★</div>
                 </div>
-                <div>
+                <div style={{ flex: 1 }}>
                   <div className="condensed" style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a1a' }}>Google Reviews</div>
-                  <div className="mono" style={{ fontSize: '11px', color: '#888' }}>213 verified reviews</div>
+                  <div className="mono" style={{ fontSize: '11px', color: '#888' }}>273 verified reviews</div>
                 </div>
-              </div>
+                <span className="mono" style={{ fontSize: '11px', color: '#1e3a5f', fontWeight: '500' }}>Verify →</span>
+              </a>
 
               {/* Guarantee */}
               <div style={{ background: '#fff', border: '2px solid #1e3a5f', borderRadius: '10px', padding: '20px', marginBottom: '16px', textAlign: 'center' }}>
@@ -412,12 +360,19 @@ export default function CheckoutTemplate({
 
               <div style={{ background: '#fff', border: '1px solid #e5e0d5', borderRadius: '8px', padding: '8px 14px', marginBottom: '10px', textAlign: 'center' }}>
                 <p className="condensed" style={{ fontSize: '12px', fontWeight: '600', color: '#1e3a5f', letterSpacing: '0.5px' }}>
-                  💳 <span style={{ fontStyle: 'italic' }}>Afterpay</span> & <span style={{ fontStyle: 'italic' }}>Klarna</span> — <span style={{ color: '#8b1a1a' }}>Interest Free</span> Payments Available
+                  💳 <span style={{ fontStyle: 'italic' }}>Afterpay</span> & <span style={{ fontStyle: 'italic' }}>Klarna</span>: <span style={{ color: '#8b1a1a' }}>Interest Free</span> Payments Available
                 </p>
               </div>
 
+              {couponCode && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#e8f4e8', border: '2px solid #2d7a2d', borderRadius: '8px', padding: '8px 12px', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '14px' }}>🏷️</span>
+                  <span className="condensed" style={{ fontSize: '12px', fontWeight: '700', color: '#1a5c1a', letterSpacing: '0.5px' }}>Discount code {couponCode} applied at checkout</span>
+                </div>
+              )}
+
               <div className="samcart-wrapper">
-                <sc-checkout product={samcartSlug} subdomain="legaltags" coupon=""></sc-checkout>
+                <sc-checkout product={samcartSlug} subdomain="legaltags" coupon={couponCode}></sc-checkout>
               </div>
 
               <div className="guarantee-inline" style={{ marginTop: '10px' }}>
@@ -471,18 +426,20 @@ export default function CheckoutTemplate({
       {/* Trust Bar */}
       <section style={{ background: '#1a1a1a', color: '#f5f1e8', padding: '14px', textAlign: 'center' }}>
         <div className="condensed" style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '1.5px', lineHeight: '2', color: '#fff' }}>
-          ✓ NO SALES TAX &nbsp;·&nbsp; ✓ NO INSPECTIONS &nbsp;·&nbsp; ✓ PLATES IN 3 DAYS &nbsp;·&nbsp; ✓ 10,000+ REGISTERED &nbsp;·&nbsp; ✓ MONEY-BACK GUARANTEE
+          ✓ NO SALES TAX &nbsp;·&nbsp; ✓ NO ANNUAL STATE INSPECTIONS &nbsp;·&nbsp; ✓ PLATES IN 3 DAYS &nbsp;·&nbsp; ✓ 10,000+ REGISTERED &nbsp;·&nbsp; ✓ MONEY-BACK GUARANTEE
         </div>
       </section>
 
       {/* Footer */}
       <footer style={{ background: '#1a1a1a', color: '#f5f1e8', padding: '24px 20px 80px', textAlign: 'center' }}>
-        <div className="mono" style={{ fontSize: '11px', marginBottom: '12px' }}>
+        <div className="mono" style={{ fontSize: '11px', marginBottom: '8px' }}>
           <a href="tel:406-510-0599" onClick={() => fireClarityEvent('phone_click_footer')} style={{ color: '#f5f1e8', textDecoration: 'none' }}>📞 406-510-0599</a>
           <span style={{ opacity: 0.4, margin: '0 10px' }}>|</span>
-          <span style={{ opacity: 0.6 }}>M-F 8am-8pm MT</span>
-          <span style={{ opacity: 0.4, margin: '0 10px' }}>|</span>
-          <span style={{ opacity: 0.5 }}>Philipsburg, MT</span>
+          <a href="mailto:support@legaltags.com" onClick={() => fireClarityEvent('email_click_footer')} style={{ color: '#f5f1e8', textDecoration: 'none' }}>✉ support@legaltags.com</a>
+        </div>
+        <div className="mono" style={{ fontSize: '11px', opacity: 0.7, marginBottom: '8px' }}>M-F 8am-8pm Mountain Time · 126 W Broadway #107, Philipsburg, MT 59858</div>
+        <div className="mono" style={{ fontSize: '11px', marginBottom: '12px' }}>
+          <a href="https://biz.sosmt.gov/api/report/FromActiveReport/0/Agents/0" target="_blank" rel="noopener noreferrer" onClick={() => fireClarityEvent('mt_sos_verify_click')} style={{ color: '#f5f1e8', textDecoration: 'underline', opacity: 0.8 }}>Verified MT Registered Agent (SOS)</a>
         </div>
         <span className="mono" style={{ fontSize: '9px', opacity: 0.3 }}>© 2026 Legal Tags · All Rights Reserved</span>
       </footer>
@@ -491,31 +448,13 @@ export default function CheckoutTemplate({
       <div className={`mobile-sticky-cta mobile-only ${showMobileCTA ? 'visible' : ''}`}>
         <div>
           <div className="condensed" style={{ fontSize: '12px', fontWeight: '600', color: '#fff', letterSpacing: '0.5px' }}>$300 Credit Applied</div>
-          <div className="mono" style={{ fontSize: '10px', color: '#b8c4d0' }}>Expires {String(countdownMinutes).padStart(2, '0')}:{String(countdownSeconds).padStart(2, '0')}</div>
+          <div className="mono" style={{ fontSize: '10px', color: '#b8c4d0' }}>Free Montana LLC setup included</div>
         </div>
         <button onClick={scrollToCheckout} style={{ background: '#8b1a1a', color: '#fff', border: 'none', padding: '12px 20px', fontFamily: "'Oswald', sans-serif", fontWeight: '600', fontSize: '13px', letterSpacing: '1px', textTransform: 'uppercase', cursor: 'pointer', borderRadius: '4px', whiteSpace: 'nowrap' }}>
           ORDER NOW →
         </button>
       </div>
 
-      {/* Social Proof Toast */}
-      <div className={`social-proof-toast ${toastVisible ? 'visible' : ''}`} style={{ position: 'fixed' }}>
-        <div className="toast-avatar">{socialProofItems[toastIndex]?.name?.charAt(0) || '?'}</div>
-        <div>
-          <div className="mono" style={{ fontSize: '12px', color: '#1a1a1a', lineHeight: '1.4' }}>
-            <strong>{socialProofItems[toastIndex]?.name}</strong>
-            <span style={{ color: '#888' }}> from {socialProofItems[toastIndex]?.state}</span>
-            <br />
-            <span style={{ color: socialProofItems[toastIndex]?.action?.includes('saved') ? '#2d7a2d' : '#1e3a5f', fontWeight: '500' }}>
-              {socialProofItems[toastIndex]?.action}
-            </span>
-          </div>
-          <div className="mono" style={{ fontSize: '10px', color: '#aaa', marginTop: '2px' }}>
-            {socialProofItems[toastIndex]?.vehicle} · {socialProofItems[toastIndex]?.time}
-          </div>
-        </div>
-        <button onClick={() => setToastVisible(false)} style={{ position: 'absolute', top: '6px', right: '8px', background: 'none', border: 'none', fontSize: '14px', color: '#ccc', cursor: 'pointer', padding: '2px 4px', lineHeight: 1 }}>×</button>
-      </div>
     </div>
   );
 }
